@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  */
 
-package com.mycompany.prog5121_poe_part1; // Ensure this matches your package name!
+package com.mycompany.prog5121_poe_part1; 
 
 import java.util.Scanner;
 
