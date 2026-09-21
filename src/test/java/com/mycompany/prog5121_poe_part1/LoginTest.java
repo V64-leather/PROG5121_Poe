@@ -7,12 +7,6 @@ package com.mycompany.prog5121_poe_part1; // Make sure this matches your package
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-
-/**
- *
- * @author oraex
- */
-
 public class LoginTest {
 
     Login login = new Login();
@@ -46,12 +40,8 @@ public class LoginTest {
     public void testCellPhoneIncorrectlyFormatted() {
         assertFalse(login.checkCellPhoneNumber("08966553"));
     }
-
-    private void assertTrue() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    private void assertFalse(boolean checkUserNameboolean checkUserName) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
 }
+
+
+
+  
