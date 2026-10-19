@@ -32,11 +32,40 @@ public class Message {
         for (int i = 1; i <= numMessages; i++) {
             System.out.println("\n--- Entering Message " + i + " of " + numMessages + " ---");
             
+            // 1. Recipient Cell Validation
             System.out.print("Enter recipient cell number: ");
+            String recipient = scanner.nextLine();
             
+            if (!checkRecipientCell(recipient)) {
+                System.out.println("Cell phone number is incorrectly formatted or does not contain an international code. Please correct the number and try again.");
+                i--; // Repeat iteration if invalid
+                continue;
+            } else {
+                System.out.println("Cell phone number successfully captured.");
+            }
+            
+            // 2. Message Length Validation
             System.out.print("Enter message text: ");
+            String messageText = scanner.nextLine();
             
-            System.out.println("-> [Placeholder] Message " + i + " captured successfully.");
+            if (!checkMessageLength(messageText)) {
+                int surplus = messageText.length() - 250;
+                System.out.println("Please enter a message of less than 250 characters. (Exceeds by " + surplus + " characters)");
+                i--; // Repeat iteration if invalid
+            } else {
+                System.out.println("Message sent");
+            }
         }
+    }
+
+    public boolean checkMessageLength(String message) {
+        return message != null && message.length() <= 250;
+    }
+
+    public boolean checkRecipientCell(String cellNumber) {
+        if (cellNumber == null) {
+            return false;
+        }
+        return cellNumber.startsWith("+") && cellNumber.length() <= 12 && cellNumber.length() >= 10;
     }
 }
