@@ -49,31 +49,28 @@ public class Main {
                 
                 System.out.println("\n" + loginStatusMessage);
                 
-                // ==============================================================
-                // PART 2: START OF QUICKCHAT MENU (ONLY ACCESSING IF LOGGED IN)[cite: 7]
-                // ==============================================================
+                // QuickChat Part 2 Menu Flow
                 if (isLoggedIn) {
                     Message messageSystem = new Message();
-                    messageSystem.displayWelcomeMessage(); //[cite: 7]
+                    messageSystem.displayWelcomeMessage();
                     
                     boolean running = true;
                     
-                    while (running) { //[cite: 7]
-                        messageSystem.displayMenu(); //[cite: 7]
+                    while (running) {
+                        messageSystem.displayMenu();
                         String choiceInput = scanner.nextLine();
                         
                         switch (choiceInput) {
-                            case "1" -> System.out.println("\n[Send Messages selected]");
-                            case "2" -> System.out.println("\nComing Soon."); //[cite: 7]
+                            case "1" -> messageSystem.processMessages(scanner);
+                            case "2" -> System.out.println("\nComing Soon.");
                             case "3" -> {
                                 System.out.println("\nExiting application. Goodbye!");
-                                running = false; //[cite: 7]
+                                running = false;
                             }
                             default -> System.out.println("\nInvalid option. Please enter 1, 2, or 3.");
                         }
                     }
                 }
-                
                 
             } else {
                 System.out.println("Registration failed. Please restart the program and try again.");
