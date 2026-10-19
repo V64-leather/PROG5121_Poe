@@ -62,7 +62,8 @@ public class Main {
                         
                         switch (choiceInput) {
                             case "1" -> messageSystem.processMessages(scanner);
-                            case "2" -> System.out.println("\nComing Soon.");
+                            case "2" -> // Displays sent message history using printMessages()
+                                System.out.println("\n" + messageSystem.printMessages());
                             case "3" -> {
                                 System.out.println("\nExiting application. Goodbye!");
                                 running = false;

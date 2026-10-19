@@ -9,10 +9,18 @@
  */
 package com.mycompany.prog5121_poe_part1;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
 public class Message {
+
+    // Instance variables to keep track of messages during runtime
+    private final List<String> sentMessagesList = new ArrayList<>();
+    private int totalMessagesCount = 0;
 
     public void displayWelcomeMessage() {
         System.out.println("=== Welcome to QuickChat. ===");
@@ -73,27 +81,43 @@ public class Message {
             System.out.print("Enter choice (1-3): ");
             
             String sendChoice = scanner.nextLine();
+            String status = "";
+
             switch (sendChoice) {
-                case "1":
-                    System.out.println("Message successfully sent.");
-                    break;
-                case "2":
+                case "1" -> {
+                    status = "Message successfully sent.";
+                    System.out.println(status);
+                    totalMessagesCount++;
+                }
+                case "2" -> {
                     System.out.println("Press 0 to delete the message.");
                     String deleteChoice = scanner.nextLine();
                     if (deleteChoice.equals("0")) {
-                        System.out.println("Message successfully deleted.");
+                        status = "Message successfully deleted.";
+                        System.out.println(status);
                     } else {
-                        System.out.println("Action cancelled.");
+                        status = "Action cancelled.";
+                        System.out.println(status);
                     }
-                    break;
-                case "3":
-                    System.out.println("Message successfully stored.");
-                    break;
-                default:
+                }
+                case "3" -> {
+                    status = "Message successfully stored.";
+                    System.out.println(status);
+                    storeMessage(messageID, messageHash, recipient, messageText);
+                }
+                default -> {
+                    status = "Message successfully stored.";
                     System.out.println("Invalid option selected. Defaulting to stored.");
-                    break;
+                    storeMessage(messageID, messageHash, recipient, messageText);
+                }
             }
+
+            // Format full details string for tracking history
+            String messageDetails = "ID: " + messageID + " | Hash: " + messageHash + " | To: " + recipient + " | Text: " + messageText;
+            sentMessagesList.add(messageDetails);
         }
+
+        System.out.println("\nTotal number of messages processed/sent: " + returnTotalMessages());
     }
 
     public boolean checkMessageLength(String message) {
@@ -107,27 +131,48 @@ public class Message {
         return cellNumber.startsWith("+") && cellNumber.length() <= 12 && cellNumber.length() >= 10;
     }
 
-    // Generates a random 10-digit Message ID
     public String createMessageID() {
         Random rand = new Random();
         long id = 1000000000L + rand.nextLong(9000000000L);
         return String.valueOf(id);
     }
 
-    // Creates the message hash using string manipulation
     public String createMessageHash(String messageID, int messageNumber, String messageText) {
         String firstTwoID = messageID.substring(0, 2);
         
-        // Extract first and last word from messageText
         String[] words = messageText.trim().split("\\s+");
         String firstWord = words.length > 0 ? words[0] : "";
         String lastWord = words.length > 1 ? words[words.length - 1] : firstWord;
 
-        // Format: [first 2 digits of ID]:[message index - 1]:[FIRSTWORDLASTWORD] in uppercase
-        // (Note: assignment shows index starting from 0 or 1 depending on loop context; we use (messageNumber - 1) to align with standard indexing)
         int indexNum = messageNumber - 1;
         String combinedWords = (firstWord + lastWord).toUpperCase();
 
         return firstTwoID + ":" + indexNum + ":" + combinedWords;
+    }
+
+    // Stores message data into a JSON file format
+    public void storeMessage(String id, String hash, String recipient, String text) {
+        String jsonEntry = "{\n  \"MessageID\": \"" + id + "\",\n  \"MessageHash\": \"" + hash + "\",\n  \"Recipient\": \"" + recipient + "\",\n  \"Message\": \"" + text + "\"\n},\n";
+        try (FileWriter file = new FileWriter("messages.json", true)) {
+            file.write(jsonEntry);
+            System.out.println("Message successfully stored in JSON file.");
+        } catch (IOException e) {
+            System.out.println("Error storing message to JSON: " + e.getMessage());
+        }
+    }
+
+    // Returns all sent messages
+    public String printMessages() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== SENT MESSAGES HISTORY ===\n");
+        for (String msg : sentMessagesList) {
+            sb.append(msg).append("\n");
+        }
+        return sb.toString();
+    }
+
+    // Returns total number of messages sent
+    public int returnTotalMessages() {
+        return totalMessagesCount;
     }
 }
