@@ -141,8 +141,10 @@ public class Message {
         String firstTwoID = messageID.substring(0, 2);
         
         String[] words = messageText.trim().split("\\s+");
-        String firstWord = words.length > 0 ? words[0] : "";
-        String lastWord = words.length > 1 ? words[words.length - 1] : firstWord;
+        
+        // Strip out punctuation (like commas or question marks) so only letters remain for the hash
+        String firstWord = words.length > 0 ? words[0].replaceAll("[^a-zA-Z]", "") : "";
+        String lastWord = words.length > 1 ? words[words.length - 1].replaceAll("[^a-zA-Z]", "") : firstWord;
 
         int indexNum = messageNumber - 1;
         String combinedWords = (firstWord + lastWord).toUpperCase();
