@@ -24,9 +24,53 @@ import java.util.regex.Pattern;
 
 public class Message {
 
+    public static class MessageRecord {
+        private final String messageID;
+        private final String messageHash;
+        private final String sender;
+        private final String recipient;
+        private final String messageText;
+        private final String status; // e.g., "Sent", "Stored", "Disregarded"
+
+        public MessageRecord(String messageID, String messageHash, String sender, String recipient, String messageText, String status) {
+            this.messageID = messageID;
+            this.messageHash = messageHash;
+            this.sender = sender;
+            this.recipient = recipient;
+            this.messageText = messageText;
+            this.status = status;
+        }
+
+        public String getMessageID() {
+            return messageID;
+        }
+
+        public String getMessageHash() {
+            return messageHash;
+        }
+
+        public String getSender() {
+            return sender;
+        }
+
+        public String getRecipient() {
+            return recipient;
+        }
+
+        public String getMessageText() {
+            return messageText;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+    }
+
     // Runtime history list & counter
     private final List<String> sentMessagesList = new ArrayList<>();
+    private final List<MessageRecord> messageRecords = new ArrayList<>();
     private int totalMessagesCount = 0;
+    private String currentSender = "Current User";
 
     // Part 3 parallel arrays/lists (populated dynamically at runtime, never hard-coded)
     private final List<String> sentMessages = new ArrayList<>();
@@ -34,6 +78,20 @@ public class Message {
     private final List<String> storedMessages = new ArrayList<>();
     private final List<String> messageHashes = new ArrayList<>();
     private final List<String> messageIDs = new ArrayList<>();
+
+    public void setCurrentSender(String sender) {
+        if (sender != null && !sender.isBlank()) {
+            this.currentSender = sender;
+        }
+    }
+
+    public String getCurrentSender() {
+        return currentSender;
+    }
+
+    public List<MessageRecord> getMessageRecords() {
+        return messageRecords;
+    }
 
     public void displayWelcomeMessage() {
         System.out.println("=== Welcome to QuickChat. ===");
@@ -105,6 +163,7 @@ public class Message {
                     status = "Message successfully sent.";
                     System.out.println(status);
                     sentMessages.add(messageText);
+                    messageRecords.add(new MessageRecord(messageID, messageHash, currentSender, recipient, messageText, "Sent"));
                     totalMessagesCount++;
                 }
                 case "2" -> {
@@ -114,6 +173,7 @@ public class Message {
                         status = "Message successfully deleted.";
                         System.out.println(status);
                         disregardedMessages.add(messageText);
+                        messageRecords.add(new MessageRecord(messageID, messageHash, currentSender, recipient, messageText, "Disregarded"));
                     } else {
                         status = "Action cancelled.";
                         System.out.println(status);
@@ -123,12 +183,14 @@ public class Message {
                     status = "Message successfully stored.";
                     System.out.println(status);
                     storedMessages.add(messageText);
+                    messageRecords.add(new MessageRecord(messageID, messageHash, currentSender, recipient, messageText, "Stored"));
                     storeMessage(messageID, messageHash, recipient, messageText);
                 }
                 default -> {
                     status = "Message successfully stored.";
                     System.out.println("Invalid option selected. Defaulting to stored.");
                     storedMessages.add(messageText);
+                    messageRecords.add(new MessageRecord(messageID, messageHash, currentSender, recipient, messageText, "Stored"));
                     storeMessage(messageID, messageHash, recipient, messageText);
                 }
             }
@@ -187,8 +249,10 @@ public class Message {
     }
 
     /**
-     * Reads stored messages from messages.json into the storedMessages list.
-     * Uses standard Java NIO file reading and regex extraction for "Message" fields.
+     * Reads stored messages from messages.json into the storedMessages list
+     * and syncs MessageRecord entries for stored items.
+     * @param filePath
+     * @return 
      */
     public List<String> loadStoredMessagesFromJson(String filePath) {
         storedMessages.clear();
@@ -198,13 +262,27 @@ public class Message {
         }
         try {
             String content = Files.readString(path, StandardCharsets.UTF_8);
-            Pattern pattern = Pattern.compile("\"Message\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"");
-            Matcher matcher = pattern.matcher(content);
-            while (matcher.find()) {
-                String extracted = matcher.group(1)
-                        .replace("\\\"", "\"")
-                        .replace("\\\\", "\\");
-                storedMessages.add(extracted);
+            Pattern objPattern = Pattern.compile("\\{[^{}]*\\}");
+            Matcher objMatcher = objPattern.matcher(content);
+
+            while (objMatcher.find()) {
+                String block = objMatcher.group();
+                String id = extractJsonField(block, "MessageID");
+                String hash = extractJsonField(block, "MessageHash");
+                String recipient = extractJsonField(block, "Recipient");
+                String text = extractJsonField(block, "Message");
+
+                if (text != null) {
+                    storedMessages.add(text);
+                    boolean alreadyExists = messageRecords.stream()
+                            .anyMatch(r -> r.getMessageText().equals(text) && "Stored".equals(r.getStatus()));
+                    if (!alreadyExists) {
+                        String safeId = id != null ? id : createMessageID();
+                        String safeHash = hash != null ? hash : createMessageHash(safeId, messageRecords.size() + 1, text);
+                        String safeRecipient = recipient != null ? recipient : "Unknown";
+                        messageRecords.add(new MessageRecord(safeId, safeHash, currentSender, safeRecipient, text, "Stored"));
+                    }
+                }
             }
         } catch (IOException e) {
             System.out.println("Error reading stored messages from JSON: " + e.getMessage());
@@ -212,8 +290,109 @@ public class Message {
         return storedMessages;
     }
 
+    private String extractJsonField(String jsonBlock, String fieldName) {
+        Pattern pattern = Pattern.compile("\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"");
+        Matcher matcher = pattern.matcher(jsonBlock);
+        if (matcher.find()) {
+            return matcher.group(1)
+                    .replace("\\\"", "\"")
+                    .replace("\\\\", "\\");
+        }
+        return null;
+    }
+
     public List<String> loadStoredMessagesFromJson() {
         return loadStoredMessagesFromJson("messages.json");
+    }
+
+    // --- Part 3 Sub-option (a): Display sender and recipient of all stored messages ---
+    public String displayStoredSendersAndRecipients() {
+        loadStoredMessagesFromJson();
+        StringBuilder sb = new StringBuilder("=== STORED MESSAGES: SENDER & RECIPIENT ===\n");
+        boolean found = false;
+        for (MessageRecord record : messageRecords) {
+            if ("Stored".equals(record.getStatus())) {
+                sb.append("Sender: ").append(record.getSender())
+                  .append(" | Recipient: ").append(record.getRecipient())
+                  .append(" | Message: ").append(record.getMessageText()).append("\n");
+                found = true;
+            }
+        }
+        if (!found) {
+            sb.append("No stored messages found.\n");
+        }
+        return sb.toString();
+    }
+
+    // --- Part 3 Sub-option (b): Display the longest message ---
+    public String getLongestMessage() {
+        String longest = "";
+        for (MessageRecord record : messageRecords) {
+            if (record.getMessageText() != null && record.getMessageText().length() > longest.length()) {
+                longest = record.getMessageText();
+            }
+        }
+        for (String msg : sentMessages) {
+            if (msg != null && msg.length() > longest.length()) {
+                longest = msg;
+            }
+        }
+        for (String msg : storedMessages) {
+            if (msg != null && msg.length() > longest.length()) {
+                longest = msg;
+            }
+        }
+        return longest;
+    }
+
+    public String displayLongestMessage() {
+        String longest = getLongestMessage();
+        if (longest.isEmpty()) {
+            return "No messages available.";
+        }
+        return "Longest Message:\n" + longest;
+    }
+
+    // --- Part 3 Sub-option (c): Search for a message ID and display recipient and message ---
+    public String searchByMessageID(String targetID) {
+        if (targetID == null || targetID.isBlank()) {
+            return "Message ID not found.";
+        }
+        for (MessageRecord record : messageRecords) {
+            if (targetID.trim().equals(record.getMessageID())) {
+                return "Recipient: " + record.getRecipient() + "\nMessage: " + record.getMessageText();
+            }
+        }
+        return "Message ID '" + targetID + "' not found.";
+    }
+
+    // --- Part 3 Sub-option (d): Search all messages sent or stored for a particular recipient ---
+    public List<String> getMessagesForRecipient(String recipient) {
+        List<String> matches = new ArrayList<>();
+        if (recipient == null || recipient.isBlank()) {
+            return matches;
+        }
+        String normalizedTarget = recipient.trim();
+        for (MessageRecord record : messageRecords) {
+            String status = record.getStatus();
+            boolean isSentOrStored = "Sent".equals(status) || "Stored".equals(status);
+            if (isSentOrStored && normalizedTarget.equals(record.getRecipient())) {
+                matches.add(record.getMessageText());
+            }
+        }
+        return matches;
+    }
+
+    public String searchMessagesByRecipient(String recipient) {
+        List<String> matches = getMessagesForRecipient(recipient);
+        if (matches.isEmpty()) {
+            return "No sent or stored messages found for recipient: " + recipient;
+        }
+        StringBuilder sb = new StringBuilder("=== MESSAGES FOR RECIPIENT: " + recipient + " ===\n");
+        for (String msg : matches) {
+            sb.append(msg).append("\n");
+        }
+        return sb.toString();
     }
 
     // Getters for Part 3 arrays/lists
