@@ -103,7 +103,8 @@ public class Message {
         System.out.println("1) Send Messages");
         System.out.println("2) Show recently sent messages");
         System.out.println("3) Quit");
-        System.out.print("Enter option (1-3): ");
+        System.out.println("4) Stored Messages");
+        System.out.print("Enter option (1-4): ");
     }
 
     public void processMessages(Scanner scanner) {
