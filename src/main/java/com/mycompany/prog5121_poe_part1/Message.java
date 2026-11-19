@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -391,6 +392,61 @@ public class Message {
         StringBuilder sb = new StringBuilder("=== MESSAGES FOR RECIPIENT: " + recipient + " ===\n");
         for (String msg : matches) {
             sb.append(msg).append("\n");
+        }
+        return sb.toString();
+    }
+
+    // --- Part 3 Sub-option (e): Delete a message using the message hash ---
+    public String deleteMessageByHash(String targetHash) {
+        if (targetHash == null || targetHash.isBlank()) {
+            return "Message hash not found.";
+        }
+        String normalizedHash = targetHash.trim();
+        String deletedText = null;
+        String deletedID = null;
+
+        Iterator<MessageRecord> iterator = messageRecords.iterator();
+        while (iterator.hasNext()) {
+            MessageRecord record = iterator.next();
+            if (normalizedHash.equals(record.getMessageHash())) {
+                deletedText = record.getMessageText();
+                deletedID = record.getMessageID();
+                iterator.remove();
+                break;
+            }
+        }
+
+        if (deletedText == null) {
+            return "Message with hash '" + normalizedHash + "' not found.";
+        }
+
+        messageHashes.remove(normalizedHash);
+        if (deletedID != null) {
+            messageIDs.remove(deletedID);
+        }
+        sentMessages.remove(deletedText);
+        storedMessages.remove(deletedText);
+        disregardedMessages.remove(deletedText);
+        sentMessagesList.removeIf(entry -> entry.contains("Hash: " + normalizedHash));
+
+        return "Message: \"" + deletedText + "\" successfully deleted.";
+    }
+
+    // --- Part 3 Sub-option (f): Display a report with Message Hash, Recipient, and Message ---
+    public String displayMessageReport() {
+        StringBuilder sb = new StringBuilder("=== FULL MESSAGE REPORT ===\n");
+        boolean hasEntries = false;
+        for (MessageRecord record : messageRecords) {
+            if ("Sent".equals(record.getStatus()) || "Stored".equals(record.getStatus())) {
+                sb.append("Message Hash: ").append(record.getMessageHash())
+                  .append(" | Recipient: ").append(record.getRecipient())
+                  .append(" | Message: ").append(record.getMessageText())
+                  .append(" (").append(record.getStatus()).append(")\n");
+                hasEntries = true;
+            }
+        }
+        if (!hasEntries) {
+            sb.append("No messages available for the report.\n");
         }
         return sb.toString();
     }
